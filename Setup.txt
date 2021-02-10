@@ -1,0 +1,90 @@
+# Run the below commands on all master nodes
+yum install haproxy keepalived -y
+vi /usr/libexec/keepalived/check_apiserver.sh
+chmod +x /usr/libexec/keepalived/check_apiserver.sh
+cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf-org
+sh -c '> /etc/keepalived/keepalived.conf'
+vi /etc/keepalived/keepalived.conf
+cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg-org
+vi /etc/haproxy/haproxy.cfg
+firewall-cmd --add-rich-rule='rule protocol value="vrrp" accept' --permanent
+firewall-cmd --permanent --add-port=8443/tcp
+firewall-cmd --reload
+systemctl enable keepalived --now
+systemctl enable haproxy --now
+
+# Run the following on all nodes
+swapoff -a
+sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+setenforce 0
+sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+# Run the following on all Master nodes
+firewall-cmd --permanent --add-port=6443/tcp
+firewall-cmd --permanent --add-port=2379-2380/tcp
+firewall-cmd --permanent --add-port=10250/tcp
+firewall-cmd --permanent --add-port=10251/tcp
+firewall-cmd --permanent --add-port=10252/tcp
+firewall-cmd --permanent --add-port=179/tcp
+firewall-cmd --permanent --add-port=4789/udp
+firewall-cmd --reload
+
+# Run the following on all the Worker nodes
+firewall-cmd --permanent --add-port=10250/tcp
+firewall-cmd --permanent --add-port=30000-32767/tcp
+firewall-cmd --permanent --add-port=179/tcp
+firewall-cmd --permanent --add-port=4789/udp
+firewall-cmd --reload
+
+# Run the following on all nodes
+modprobe br_netfilter
+sh -c "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
+sh -c "echo '1' > /proc/sys/net/ipv4/ip_forward"
+
+# Run the following on all nodes
+yum install -y yum-utils
+yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+yum install docker-ce -y
+systemctl enable docker --now
+
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+
+yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+systemctl enable kubelet --now
+
+# Run the below command on Master-1
+kubeadm init --control-plane-endpoint "vip-k8s-master:8443" --upload-certs --apiserver-advertise-address=10.9.208.244
+
+# Run the below command on Master-1 to install CNI (Currently we are installing Calico using a custom yaml)
+kubectl apply -f calico.yaml
+
+# Run the below command on other Moaster/Control plane nodes to join the cluster
+kubeadm join vip-k8s-master:8443 --token dojc95.q2tuskdgp2cntehm     --discovery-token-ca-cert-hash sha256:ef58717b9ab43180e8d19da2f017b155ad6aa8bfc91b822ec38a333500ec497b     --control-plane --certificate-key 7010ea2e59f015c4c25da6ce5243885400e8dd0b7232b4a2b6ec9217f79d6b95 --apiserver-advertise-address=10.9.208.245
+
+# Note: In case the other Master nodes are having issue while joining, try to check connectsion status using "systemctl status kubelet" on those nodes. Try restarting the kubletlet service to see if it fixes the issue. Also, check docker, CNI and etd cluster. Some useful etc d commands are as follows:
+
+Commands to verify is etcd pod is working correctly using kubectl exec:
+
+To get all the keys stored in etcd and store is in a file: 
+kubectl exec -it -n kube-system etcd-kubecoordinator1 -- sh -c "ETCDCTL_API=3 etcdctl --endpoints https://10.9.208.244:2379 --cacert /etc/kubernetes/pki/etcd/ca.crt --key /etc/kubernetes/pki/etcd/server.key --cert /etc/kubernetes/pki/etcd/server.crt get \"\" --prefix=true -w json" > etcd-kv.json
+
+To print all the keys in that etcd-kv.json file: 
+for k in $(cat etcd-kv.json | jq '.kvs[].key' | cut -d '"' -f2); do echo $k | base64 --decode; echo; done
+
+To get values from a KEY (replace KEY with any from the above file)
+kubectl exec -it -n kube-system etcd-kubecoordinator1 -- sh -c "ETCDCTL_API=3 etcdctl --endpoints https://10.9.208.244:2379 --cacert /etc/kubernetes/pki/etcd/ca.crt --key /etc/kubernetes/pki/etcd/server.key --cert /etc/kubernetes/pki/etcd/server.crt get \"KEY\" -w json"
+
+To check member list in a etc cluster
+kubectl exec -it -n kube-system etcd-kubecoordinator1 -- sh -c "ETCDCTL_API=3 etcdctl --endpoints https://10.9.208.244:2379 --cacert /etc/kubernetes/pki/etcd/ca.crt --cert /etc/kubernetes/pki/etcd/peer.crt --key /etc/kubernetes/pki/etcd/peer.key member list -w table"
+
+
+
