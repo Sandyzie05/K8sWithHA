@@ -1,4 +1,25 @@
+# Before starting any installation on any of the nodes, make sure that there is network connectivity between all the nodes,
+# You have sudo access on all the nodes and there is some way tp reach the internet or install the required files.
+
+# First modify the names of the nodes in the /etc/hosts file of all the nodes as you want for the cluster, Example:
+10.9.208.244	chl-elk-e-001.example.com  chl-elk-e-001 kubecoordinator1
+10.9.208.245    chl-elk-l-001.example.com  chl-elk-l-001 kubecoordinator2
+10.9.208.246    chl-elk-k-001.example.com  chl-elk-k-001 kubecoordinator3
+10.9.208.241    chl-elk-e-002.example.com  chl-elk-e-002 kubehelper1
+10.9.208.242    chl-elk-l-002.example.com  chl-elk-l-002 kubehelper2
+10.9.208.243    chl-elk-k-002.example.com  chl-elk-k-002 kubehelper3
+10.9.208.240    vip-k8s-master
+
+# Here I am using a VIP to be configured on all the master node which will help in balancing the load for the api-server.
+# Now install keepalived and haproxy on all the master nodes and use the check_apiserver.sh, keepalived.conf and haproxy.conf files.
+# Modify the conf files based on your configuration and naming of hosts. make the .sh as executable (use chmod +x)
+# Modify the keepalived.conf files on the master nodes based on where you place check_apiserver.sh, state of the keepalived and priority you want.
+# For my case I have set the 1st master node to be "state MSATER" and for other nodes as "state SLAVE". For priority, I have set "priority 255"
+# for master and "priority 254" and "priority 254" for the other masters.
+
+# Reference commands to be ran on master and worker nodes.
 # Run the below commands on all master nodes
+# Run the below commands till "*********************************" only to use them as reference for the above instructions"
 yum install haproxy keepalived -y
 vi /usr/libexec/keepalived/check_apiserver.sh
 chmod +x /usr/libexec/keepalived/check_apiserver.sh
@@ -12,7 +33,9 @@ firewall-cmd --permanent --add-port=8443/tcp
 firewall-cmd --reload
 systemctl enable keepalived --now
 systemctl enable haproxy --now
+*********************************
 
+# After configuring keepalived and haproxy on all the master nodes do the following
 # Run the following on all nodes
 swapoff -a
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
