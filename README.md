@@ -2,7 +2,7 @@
 Create a K8s cluster with HA using keepalived and Haproxy. Read the Setup.txt file to know how to set up the cluster.
 
 # After the configuration is done successfully the nodes and pods in the cluster looks like this:
-
+```
 NAME               STATUS   ROLES                  AGE    VERSION
 kubecoordinator1   Ready    control-plane,master   167m   v1.20.2
 kubecoordinator2   Ready    control-plane,master   163m   v1.20.2
@@ -39,3 +39,4 @@ kube-proxy-tjj89                           1/1     Running   0          38m    1
 kube-scheduler-kubecoordinator1            1/1     Running   1          168m   10.9.208.244    kubecoordinator1   <none>           <none>
 kube-scheduler-kubecoordinator2            1/1     Running   0          164m   10.9.208.245    kubecoordinator2   <none>           <none>
 kube-scheduler-kubecoordinator3            1/1     Running   0          122m   10.9.208.246    kubecoordinator3   <none>           <none>
+```
