@@ -1,0 +1,7 @@
+10.9.208.244	chl-elk-e-001.example.com  chl-elk-e-001 kubecoordinator1
+10.9.208.245    chl-elk-l-001.example.com  chl-elk-l-001 kubecoordinator2
+10.9.208.246    chl-elk-k-001.example.com  chl-elk-k-001 kubecoordinator3
+10.9.208.241    chl-elk-e-002.example.com  chl-elk-e-002 kubehelper1
+10.9.208.242    chl-elk-l-002.example.com  chl-elk-l-002 kubehelper2
+10.9.208.243    chl-elk-k-002.example.com  chl-elk-k-002 kubehelper3
+10.9.208.240    vip-k8s-master
