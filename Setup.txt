@@ -14,8 +14,8 @@
 # Now install keepalived and haproxy on all the master nodes and use the check_apiserver.sh, keepalived.conf and haproxy.conf files.
 # Modify the conf files based on your configuration and naming of hosts. make the .sh as executable (use chmod +x)
 # Modify the keepalived.conf files on the master nodes based on where you place check_apiserver.sh, state of the keepalived and priority you want.
-# For my case I have set the 1st master node to be "state MSATER" and for other nodes as "state SLAVE". For priority, I have set "priority 255"
-# for master and "priority 254" and "priority 254" for the other masters.
+# For my case I have set the 1st master node to be "state MASTER" and for other nodes as "state SLAVE". For priority, I have set "priority 255"
+# for master and "priority 254" and "priority 253" for the other masters.
 
 # Reference commands to be ran on master and worker nodes.
 # Run the below commands on all master nodes
